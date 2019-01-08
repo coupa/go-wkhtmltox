@@ -186,9 +186,11 @@ type FetcherOptions struct {
 }
 
 type WKHtmlToX struct {
-	verbose  bool
-	timeout  time.Duration
-	fetchers map[string]fetcher.Fetcher
+	verbose              bool
+	timeout              time.Duration
+	fetchers             map[string]fetcher.Fetcher
+	WkhtmlToImageExePath string
+	WkhtmlToPdfExePath   string
 }
 
 func New(conf config.Configuration) (wkHtmlToX *WKHtmlToX, err error) {
@@ -258,10 +260,15 @@ func (p *WKHtmlToX) Convert(fetcherOpts FetcherOptions, convertOpts ConvertOptio
 	cmd := ""
 	ext := ""
 
+	if len(p.WkhtmlToImageExePath) == 0 || len(p.WkhtmlToPdfExePath) == 0 {
+		err = fmt.Errorf("Wkhtml executable path not found, please pass the exe path")
+		return
+	}
+
 	switch o := convertOpts.(type) {
 	case *ToImageOptions:
 		{
-			cmd = "wkhtmltoimage"
+			cmd = p.WkhtmlToImageExePath
 			ext = ".jpg"
 			if len(o.Format) > 0 {
 				ext = "." + o.Format
@@ -269,7 +276,7 @@ func (p *WKHtmlToX) Convert(fetcherOpts FetcherOptions, convertOpts ConvertOptio
 		}
 	case *ToPDFOptions:
 		{
-			cmd = "wkhtmltopdf"
+			cmd = p.WkhtmlToPdfExePath
 			ext = ".pdf"
 		}
 	default:
@@ -328,7 +335,7 @@ func (p *WKHtmlToX) Convert(fetcherOpts FetcherOptions, convertOpts ConvertOptio
 		return
 	}
 
-	defer os.Remove(tmpfileName)
+	defer os.RemoveAll(tmpDir)
 
 	var result []byte
 	result, err = ioutil.ReadFile(tmpfileName)
