@@ -333,12 +333,12 @@ func (p *WKHtmlToX) Convert(fetcherOpts FetcherOptions, convertOpts ConvertOptio
 
 	ret, err1 := ioutil.ReadFile(tmpfileName)
 
+	defer removeWkhtmlTempFiles()
+	defer os.RemoveAll(tmpDir)
+
 	if err != nil && ret == nil {
 		return
 	}
-
-	defer removeWkhtmlTempFiles()
-	defer os.RemoveAll(tmpDir)
 
 	return ret, err1
 }
@@ -347,7 +347,7 @@ func (p *WKHtmlToX) Convert(fetcherOpts FetcherOptions, convertOpts ConvertOptio
 // Removing those temp files here.
 func removeWkhtmlTempFiles() error {
 	tmp := os.TempDir()
-	files, err := filepath.Glob(tmp + "wktemp-*")
+	files, err := filepath.Glob(tmp + "/wktemp-*")
 	if err != nil {
 		fmt.Println("Error in listing the wktemp-* files", err)
 		return nil
