@@ -353,14 +353,27 @@ func removeWkhtmlTempFiles() error {
 		return nil
 	}
 
-	for _, f := range files {
-		if err := os.Remove(f); err != nil {
-			fmt.Println("Error in deleting the wktemp-* file", err)
-			return nil
+	for _, file := range files {
+		// Deleting all the files with the prefix wktemp-* may result in deleting the file that was created by another request.
+		// Hence only deleting the files that are older than one hour
+		fileStat, err := os.Stat(file)
+		if err != nil {
+			fmt.Println("Error in os.Stat - ", err)
+			continue
+		}
+
+		if isOlderThanOneHour(fileStat.ModTime()) {
+			if err := os.Remove(file); err != nil {
+				fmt.Println("Error in deleting the wktemp-* file", err)
+			}
 		}
 	}
 
 	return nil
+}
+
+func isOlderThanOneHour(t time.Time) bool {
+	return time.Now().Sub(t) > 1*time.Hour
 }
 
 func (p *WKHtmlToX) fetch(fetcherOpts FetcherOptions) (data []byte, err error) {
