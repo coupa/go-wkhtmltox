@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gogap/config"
@@ -310,6 +311,9 @@ func (p *WKHtmlToX) Convert(fetcherOpts FetcherOptions, convertOpts ConvertOptio
 
 	tmpfileName := filepath.Join(tmpDir, uuid.New()) + ext
 
+	fmt.Println("*******tmpfileName", tmpfileName)
+	fmt.Println("tmpDir**************", tmpDir)
+
 	args := convertOpts.toCommandArgs()
 
 	if p.verbose {
@@ -347,7 +351,10 @@ func (p *WKHtmlToX) Convert(fetcherOpts FetcherOptions, convertOpts ConvertOptio
 // Removing those temp files here.
 func removeWkhtmlTempFiles() error {
 	tmp := os.TempDir()
+	var mutex = &sync.Mutex{}
+	mutex.Lock()
 	files, err := filepath.Glob(tmp + "/wktemp-*")
+	mutex.Unlock()
 	if err != nil {
 		fmt.Println("Error in listing the wktemp-* files", err)
 		return nil
