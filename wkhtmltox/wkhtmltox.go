@@ -125,15 +125,36 @@ func (p *ToImageOptions) toCommandArgs() []string {
 }
 
 type ToPDFOptions struct {
-	URI            string       `json:"uri"`
-	NoCollate      bool         `json:"no_collate"`       // Collate when printing multiple copies, default is true. --collate or --no-collate
-	Copies         int          `json:"copies"`           // Number of copies to print into the pdf default is 1
-	GrayScale      bool         `json:"gray_scale"`       // PDF will be generated in grayscale
-	LowQuality     bool         `json:"low_quality"`      // Generates lower quality pdf/ps. Useful to shrink the result document space
-	Orientation    Orientation  `json:"orientation"`      // Set orientation to Landscape or Portrait (default Portrait)
-	PageSize       string       `json:"page_size"`        // Set paper size to: A4, Letter, etc. (default A4)
-	PrintMediaType bool         `json:"print_media_type"` // Use print media-type instead of screen. --print-media-type or --no-print-media-type
-	Extend         ExtendParams `json:"extend"`           // Other params
+	URI                    string        `json:"uri"`
+	NoCollate              bool          `json:"no_collate"`       // Collate when printing multiple copies, default is true. --collate or --no-collate
+	Copies                 int           `json:"copies"`           // Number of copies to print into the pdf default is 1
+	GrayScale              bool          `json:"gray_scale"`       // PDF will be generated in grayscale
+	LowQuality             bool          `json:"low_quality"`      // Generates lower quality pdf/ps. Useful to shrink the result document space
+	Orientation            Orientation   `json:"orientation"`      // Set orientation to Landscape or Portrait (default Portrait)
+	PageSize               string        `json:"page_size"`        // Set paper size to: A4, Letter, etc. (default A4)
+	PrintMediaType         bool          `json:"print_media_type"` // Use print media-type instead of screen. --print-media-type or --no-print-media-type
+	DisableJavascript      bool          `json:"disable_javascript"`
+	DisableLocalFileAccess bool          `json:"disable_local_file_access"`
+	Encoding               string        `json:"encoding"`
+	Header                 HeaderOptions `json:"header"`
+	Footer                 FooterOptions `json:"footer"`
+	Margin                 MarginOptions `json:"margin"`
+	Extend                 ExtendParams  `json:"extend"` // Other params
+}
+
+type MarginOptions struct {
+	Top    string `json:"top"`
+	Bottom string `json:"bottom"`
+	Left   string `json:"left"`
+	Right  string `json:"right"`
+}
+
+type HeaderOptions struct {
+	HtmlContent string `json:"html_content"`
+}
+
+type FooterOptions struct {
+	HtmlContent string `json:"html_content"`
 }
 
 func (p *ToPDFOptions) uri() string {
@@ -169,8 +190,46 @@ func (p *ToPDFOptions) toCommandArgs() []string {
 		args = append(args, []string{"--page-size", p.PageSize}...)
 	}
 
+	if len(p.Encoding) > 0 {
+		args = append(args, []string{"--encoding", p.Encoding}...)
+	}
+
 	if p.PrintMediaType {
 		args = append(args, "--print-media-type")
+	}
+
+	if p.DisableJavascript {
+		args = append(args, "--disable-javascript")
+	}
+
+	if p.DisableLocalFileAccess {
+		args = append(args, "--disable-local-file-access")
+	}
+
+	if len(p.Margin.Top) > 0 {
+		args = append(args, []string{"--margin-top", p.Margin.Top}...)
+	}
+
+	if len(p.Margin.Bottom) > 0 {
+		args = append(args, []string{"--margin-bottom", p.Margin.Bottom}...)
+	}
+
+	if len(p.Margin.Left) > 0 {
+		args = append(args, []string{"--margin-left", p.Margin.Left}...)
+	}
+
+	if len(p.Margin.Right) > 0 {
+		args = append(args, []string{"--margin-right", p.Margin.Right}...)
+	}
+
+	if len(p.Header.HtmlContent) > 0 {
+		tmpHeaderFile, _ := writeToTempFile(p.Header.HtmlContent)
+		args = append(args, []string{"--header-html", tmpHeaderFile.Name()}...)
+	}
+
+	if len(p.Footer.HtmlContent) > 0 {
+		tmpFooterFile, _ := writeToTempFile(p.Footer.HtmlContent)
+		args = append(args, []string{"--footer-html", tmpFooterFile.Name()}...)
 	}
 
 	extArgs := p.Extend.toCommandArgs()
@@ -178,6 +237,20 @@ func (p *ToPDFOptions) toCommandArgs() []string {
 	args = append(args, extArgs...)
 
 	return args
+}
+
+func writeToTempFile(content string) (*os.File, error) {
+	tmpFile, err := ioutil.TempFile("", "wktemp-*.html")
+	if err != nil {
+		return nil, err
+	}
+	if _, err = tmpFile.Write([]byte(content)); err != nil {
+		return nil, err
+	}
+	if err = tmpFile.Close(); err != nil {
+		return nil, err
+	}
+	return tmpFile, nil
 }
 
 type FetcherOptions struct {
